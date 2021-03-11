@@ -1,0 +1,27 @@
+version: "3.8"
+services:
+  covidmap-backend:
+    stdin_open: true
+    restart: always
+    container_name: checkoutewb-backend
+    depends_on:
+      - checkoutewb-database
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    environment:
+      - GUNICORN_CMD_ARGS=--reload
+    volumes:
+      - "./:/app"
+    ports:
+      - "4250:4250"
+  checkoutewb-database:
+    image: mongo:latest
+    container_name: checkoutewb-database
+    volumes:
+      - db-data:/data/db
+    ports:
+      - 27017:27017
+
+volumes:
+  db-data:
