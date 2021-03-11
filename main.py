@@ -11,9 +11,11 @@ from starlette.middleware.cors import CORSMiddleware
 app = FastAPI()
 client = MongoClient('checkoutewb-database', 27017)
 database = client["auction_db"]
-item_collection = database["items"]  # Create collection for images in database
-bid_collection = database["bids"]  # Create collection for images in database
+item_collection = database["items"]
+bid_collection = database["bids"]
+config_collection = database["config"]
 
+bidding_enabled = False
 
 # Cross Origin Request Scripting (CORS) is handled here.
 origins = [
@@ -51,9 +53,32 @@ class UserBid(BaseModel):
     bid: float
 
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+class FeatureFlag(BaseModel):
+    flag: str
+    value: bool
+
+
+@app.on_event('startup')
+def startup():
+    bidding_enabled_flag = FeatureFlag(**{'flag': 'enable_bidding', 'value': 'true'})
+    if not config_collection.find_one({'flag': bidding_enabled_flag.flag}):
+        config_collection.insert_one(bidding_enabled_flag.dict())
+
+    global bidding_enabled
+    bidding_enabled = config_collection.find_one({'flag': bidding_enabled_flag.flag})['value']
+
+
+@app.get('/enabled')
+def get_bidding_status():
+    return  "Bidding is Now " + 'Enabled' if bidding_enabled else 'Disabled'
+
+
+@app.post('/enabled')
+def set_bidding_status(enabled: bool):
+    config_collection.replace_one({'flag': 'enable_bidding'}, {'flag': 'enable_bidding', 'value': enabled})
+    global bidding_enabled
+    bidding_enabled = enabled
+    return "Bidding is Now " + ('Enabled' if enabled else 'Disabled')
 
 
 @app.get('/items')
@@ -119,6 +144,10 @@ def get_latest_bids():
 
 @app.post('/bid')
 def place_bid(bid: UserBid):
+
+    if not bidding_enabled:
+        return {'status': 'failure', 'detail': 'Bidding is not currently enabled.'}
+
     if not item_collection.find_one({'name': bid.item_name}):
         return {'status': 'failure', 'detail': 'Item with name does not exist'}
 
