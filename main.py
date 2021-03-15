@@ -1,6 +1,7 @@
+import os
 from typing import List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic.main import BaseModel
 from pymongo import MongoClient
 
@@ -9,7 +10,8 @@ from pytz import timezone
 from starlette.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-client = MongoClient('checkoutewb-database', 27017)
+client = MongoClient(os.getenv('MONGO_DB_URL'))
+# client = MongoClient('checkoutewb-database', 27017)
 database = client["auction_db"]
 item_collection = database["items"]
 bid_collection = database["bids"]
@@ -21,6 +23,8 @@ bidding_enabled = False
 origins = [
     "http://localhost",
     "http://localhost:3000",
+    "https://ewbumass.org",
+    "https://www.ewbumass.org",
 ]
 
 app.add_middleware(
@@ -70,11 +74,13 @@ def startup():
 
 @app.get('/enabled')
 def get_bidding_status():
-    return  "Bidding is Now " + 'Enabled' if bidding_enabled else 'Disabled'
+    return "Bidding is Now " + 'Enabled' if bidding_enabled else 'Disabled'
 
 
 @app.post('/enabled')
-def set_bidding_status(enabled: bool):
+def set_bidding_status(enabled: bool, key: str):
+    if key != os.getenv('ADMIN_KEY'):
+        raise HTTPException(status_code=401, detail='You are not authorized to make this interaction.')
     config_collection.replace_one({'flag': 'enable_bidding'}, {'flag': 'enable_bidding', 'value': enabled})
     global bidding_enabled
     bidding_enabled = enabled
@@ -96,7 +102,10 @@ def get_item_by_name(item_name: str):
 
 
 @app.post('/item')
-def add_auction_item(auction_item: AuctionItem):
+def add_auction_item(auction_item: AuctionItem, key: str):
+    if key != os.getenv('ADMIN_KEY'):
+        raise HTTPException(status_code=401, detail='You are not authorized to make this interaction.')
+
     if item_collection.find_one({'name': auction_item.name}):
         return "Item with name already exists"
 
@@ -107,7 +116,10 @@ def add_auction_item(auction_item: AuctionItem):
 
 
 @app.post('/items')
-def add_auction_item(auction_items: AuctionItemList):
+def add_auction_item(auction_items: AuctionItemList, key: str):
+    if key != os.getenv('ADMIN_KEY'):
+        raise HTTPException(status_code=401, detail='You are not authorized to make this interaction.')
+
     count = 0
     for auction_item in list(auction_items.items):
         if item_collection.find_one({'name': auction_item.name}):
@@ -121,7 +133,10 @@ def add_auction_item(auction_items: AuctionItemList):
 
 
 @app.delete('/item')
-def remove_auction_item(item_name: str):
+def remove_auction_item(item_name: str, key: str):
+    if key != os.getenv('ADMIN_KEY'):
+        raise HTTPException(status_code=401, detail='You are not authorized to make this interaction.')
+
     if item_collection.find_one({'name': item_name}):
         item_collection.delete_one({'name': item_name})
         return 'Successfully deleted item'

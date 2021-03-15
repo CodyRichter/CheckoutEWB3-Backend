@@ -4,24 +4,26 @@ services:
     stdin_open: true
     restart: always
     container_name: checkoutewb-backend
-    depends_on:
-      - checkoutewb-database
+#    depends_on:
+#      - checkoutewb-database
     build:
       context: ./
       dockerfile: Dockerfile
     environment:
       - GUNICORN_CMD_ARGS=--reload
+      - MONGO_DB_URL=${MONGO_DB_URL}
+      - ADMIN_KEY=${ADMIN_KEY}
     volumes:
       - "./:/app"
     ports:
       - "4250:4250"
-  checkoutewb-database:
-    image: mongo:latest
-    container_name: checkoutewb-database
-    volumes:
-      - db-data:/data/db
-    ports:
-      - 27017:27017
-
-volumes:
-  db-data:
+#  checkoutewb-database:
+#    image: mongo:latest
+#    container_name: checkoutewb-database
+#    volumes:
+#      - db-data:/data/db
+#    ports:
+#      - 27017:27017
+#
+#volumes:
+#  db-data:
