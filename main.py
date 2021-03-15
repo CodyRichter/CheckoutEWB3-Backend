@@ -23,8 +23,7 @@ bidding_enabled = False
 origins = [
     "http://localhost",
     "http://localhost:3000",
-    "https://ewbumass.org",
-    "https://www.ewbumass.org",
+    "https://auction.ewbumass.org",
 ]
 
 app.add_middleware(
