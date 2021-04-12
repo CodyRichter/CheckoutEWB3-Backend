@@ -40,6 +40,7 @@ class AuctionItem(BaseModel):
     description: str
     tags: List[str]
     image: str
+    additional_images: str = ''
     bid: float
     bid_name: str
 
@@ -115,7 +116,7 @@ def add_auction_item(auction_item: AuctionItem, key: str):
 
 
 @app.post('/items')
-def add_auction_item(auction_items: AuctionItemList, key: str):
+def add_auction_items(auction_items: AuctionItemList, key: str):
     if key != os.getenv('ADMIN_KEY'):
         raise HTTPException(status_code=401, detail='You are not authorized to make this interaction.')
 
@@ -169,6 +170,9 @@ def place_bid(bid: UserBid):
 
     if bid.bid <= item.bid:
         return {'status': 'failure', 'detail': 'Unable to place bid. The bid amount must be higher than the current price.'}
+
+    if bid.bid - item.bid < 2:  # Enforce minimum bid delta
+        return {'status': 'failure', 'detail': 'Unable to place bid. The minimum bid increment is $2.'}
 
     tz = timezone('EST')
     current_time = datetime.now(tz)
