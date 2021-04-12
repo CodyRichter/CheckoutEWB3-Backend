@@ -168,7 +168,7 @@ def place_bid(bid: UserBid):
 
     item = AuctionItem(**item_collection.find_one({'name': bid.item_name}))
 
-    if item['original_bid'] != item.bid:  # If not the first bid, additional bidding restrictions
+    if item.dict()['original_bid'] != item.bid:  # If not the first bid, additional bidding restrictions
         if bid.bid <= item.bid:
             return {'status': 'failure', 'detail': 'Unable to place bid. The bid amount must be higher than the current price.'}
 
