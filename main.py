@@ -90,7 +90,7 @@ def set_bidding_status(enabled: bool, key: str):
 
 @app.get('/items')
 def get_all_items():
-    return list(item_collection.find({}, {'_id': 0}))
+    return list(item_collection.find({}, {'_id': 0}).sort("name"))
 
 
 @app.get('/item')
