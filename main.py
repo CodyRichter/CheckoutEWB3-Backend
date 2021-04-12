@@ -129,7 +129,7 @@ def add_auction_items(auction_items: AuctionItemList, key: str):
         item_to_add = auction_item.dict()
         item_to_add['original_bid'] = auction_item.bid
         item_collection.insert_one(item_to_add)
-        return 'Successfully added ' + str(count) + 'item(s) to database'
+    return 'Successfully added ' + str(count) + 'item(s) to database'
 
 
 @app.delete('/item')
