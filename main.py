@@ -168,11 +168,15 @@ def place_bid(bid: UserBid):
 
     item = AuctionItem(**item_collection.find_one({'name': bid.item_name}))
 
-    if bid.bid <= item.bid:
-        return {'status': 'failure', 'detail': 'Unable to place bid. The bid amount must be higher than the current price.'}
+    if item['original_bid'] != item.bid:  # If not the first bid, additional bidding restrictions
+        if bid.bid <= item.bid:
+            return {'status': 'failure', 'detail': 'Unable to place bid. The bid amount must be higher than the current price.'}
 
-    if bid.bid - item.bid < 2:  # Enforce minimum bid delta
-        return {'status': 'failure', 'detail': 'Unable to place bid. The minimum bid increment is $2.'}
+        if bid.bid - item.bid < 2:  # Enforce minimum bid delta
+            return {'status': 'failure', 'detail': 'Unable to place bid. The minimum bid increment is $2.'}
+    else:  # If this is first bid, don't enforce delta and make equality < instead of <=
+        if bid.bid < item.bid:
+            return {'status': 'failure', 'detail': 'Unable to place bid. The bid amount must be not be below the starting bid.'}
 
     tz = timezone('EST')
     current_time = datetime.now(tz)
@@ -182,8 +186,12 @@ def place_bid(bid: UserBid):
     bid_for_db['time_placed'] = str(current_time)
 
     bid_collection.insert_one(bid_for_db)
-    item.bid = bid.bid
-    item.bid_name = bid.first_name + ' ' + bid.last_name
-    item_collection.replace_one({'name': item.name}, item.dict())
+    item_collection.update_one({
+        'name': item.name}, {
+        '$set': {
+            'bid': bid.bid,
+            'bid_name': bid.first_name + ' ' + bid.last_name
+        }
+    })
 
     return {'status': 'success', 'detail': 'Your bid has been placed!'}
