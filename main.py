@@ -60,12 +60,6 @@ class UserBid(BaseModel):
     bid: float
 
 
-# class BidRequest(BaseModel):
-#     first_name: str
-#     last_name: str
-#     email: str
-
-
 class FeatureFlag(BaseModel):
     flag: str
     value: bool
