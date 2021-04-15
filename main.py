@@ -1,5 +1,6 @@
 import os
 from typing import List
+import logging
 
 from fastapi import FastAPI, HTTPException
 from pydantic.main import BaseModel
@@ -16,6 +17,7 @@ database = client["auction_db"]
 item_collection = database["items"]
 bid_collection = database["bids"]
 config_collection = database["config"]
+logger = logging.getLogger('api')
 
 bidding_enabled = False
 
@@ -56,6 +58,12 @@ class UserBid(BaseModel):
     email: str
     item_name: str
     bid: float
+
+
+# class BidRequest(BaseModel):
+#     first_name: str
+#     last_name: str
+#     email: str
 
 
 class FeatureFlag(BaseModel):
@@ -156,6 +164,28 @@ def get_latest_bids():
         }
 
     return bids
+
+
+@app.get('/bids/user')
+def get_latest_bids(first_name: str, last_name: str):
+    all_bids = list(bid_collection.find({'first_name': first_name, 'last_name': last_name},
+                                        {'item_name': 1, 'bid': 1, '_id': 0}))
+
+    highest = list(item_collection.find({'bid_name': first_name + ' ' + last_name}, {'name': 1, 'bid': 1, 'bid_name': 1, '_id': 0}))
+    bid_names = [bid_item['name'] for bid_item in highest]
+    not_highest = []
+    for bid in all_bids:
+        if bid['item_name'] not in bid_names:
+            not_highest.append({
+                'name': bid['item_name'],
+                'bid': bid['bid']
+            })
+
+    return {
+        'total': len(highest) + len(not_highest),
+        'notHighestItems': not_highest,
+        'highestItems': highest
+    }
 
 
 @app.post('/bid')
