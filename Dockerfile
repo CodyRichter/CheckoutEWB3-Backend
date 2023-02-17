@@ -1,10 +1,12 @@
 
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.9
 
 WORKDIR /app
 
-COPY ./ /app
+COPY requirements.txt ./requirements.txt
 
-RUN pip --no-cache-dir install -r requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "4250", "--debug", "--reload-dir", "/app", "--log-level", "debug"]
+COPY ./src ./src
+
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "4250", "--reload", "--reload-dir", "/app/src", "--log-level", "debug"]

@@ -3,3 +3,5 @@ uvicorn
 pymongo
 pytz
 dnspython
+fastapi-login
+python-multipart
