@@ -10,6 +10,7 @@ class AuctionItem(BaseModel):
     tags: List[str]
     image: str
     additional_images: Optional[str] = ""
+    bids_placed: bool = False
 
 
 class AuctionItemInternal(AuctionItem):
@@ -39,6 +40,10 @@ class UserBidInternal(UserBidCreate):
 class FeatureFlag(BaseModel):
     flag: str
     value: bool
+
+
+class BidDeltaResponse(BaseModel):
+    delta: float
 
 
 class SetBiddingMode(BaseModel):

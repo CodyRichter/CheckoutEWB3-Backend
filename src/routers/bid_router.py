@@ -24,7 +24,7 @@ from src.models import (
     User,
     UserBidCreate,
     UserBidInternal,
-    UserBidStatus,
+    UserBidStatus, BidDeltaResponse,
 )
 from src.routers.auth_router import is_admin, is_user
 from src.settings import settings
@@ -48,20 +48,21 @@ def set_bidding_status(bidding_mode: SetBiddingMode, user: User = Depends(is_adm
     return {"detail": f"Bidding is now [{'Enabled' if enabled else 'Disabled'}]"}
 
 
+@bid_router.get("/delta", response_model=BidDeltaResponse)
+def get_bid_delta():
+    return BidDeltaResponse(delta=settings.minimum_bid_increment)
+
+
 @bid_router.get("/user", response_model=UserBidStatus)
 def get_winning_bids(user: User = Depends(is_user)):
     """Gets the list of all items in which the current user is winning the bid."""
 
-    winning_bid_items = item_collection.find(
-        {"bid_email": user.email}, {"_id": 0}
-    ).sort("name")
+    winning_bid_items = item_collection.find({"bid_email": user.email}, {"_id": 0})
     winning_items = [AuctionItem(**db_item) for db_item in winning_bid_items]
-    winning_item_names = [db_item["name"] for db_item in winning_bid_items]
+    winning_item_names = [i.name for i in winning_items]
 
     user_bid_item_names = bid_collection.distinct("item_name", {"email": user.email})
     losing_item_names = [i for i in user_bid_item_names if i not in winning_item_names]
-
-    logger.warning(user_bid_item_names)
 
     losing_bid_items = item_collection.find(
         {"name": {"$in": losing_item_names}}, {"_id": 0}
@@ -114,7 +115,7 @@ def place_bid(bid: UserBidCreate, user: User = Depends(is_user)):
     bid_collection.insert_one(bid_for_db.dict())
     item_collection.update_one(
         {"name": item.name},
-        {"$set": {"bid": bid.bid, "bid_email": user.email}},
+        {"$set": {"bid": bid.bid, "bid_email": user.email, "bids_placed": True}},
     )
 
     logger.info(
