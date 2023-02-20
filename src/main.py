@@ -39,16 +39,18 @@ manager.useRequest(app)
 logger = logging.getLogger("api")
 
 # Cross Origin Request Scripting (CORS) is handled here.
-origins = [
-    "http://localhost",
-    "http://localhost:3000",
-    "https://auction.ewbumass.org",
-]
+# origins = [
+#     "http://localhost",
+#     "http://localhost:3000",
+#     "https://auction.ewbumass.org",
+# ]
+
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_headers=["*"],
     allow_methods=["*"],
 )

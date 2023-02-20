@@ -59,3 +59,13 @@ class UserCreate(BaseModel):
     last_name: str
     email: str
     password: str
+
+
+class UserExport(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+
+
+class ProfileResponse(BaseModel):
+    profile: UserExport

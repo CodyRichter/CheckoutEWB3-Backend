@@ -11,7 +11,7 @@ from pymongo.errors import DuplicateKeyError
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
 from src.helpers import user_collection
-from src.models import User, UserCreate
+from src.models import User, UserCreate, UserExport
 from src.settings import settings
 
 manager = LoginManager(settings.auth_secret, token_url="/auth/token")
@@ -63,7 +63,7 @@ def login(data: OAuth2PasswordRequestForm = Depends()):
     email = data.username
     user = load_user(email)
     if not user:
-        logger.info(f"User [{user.email}] has unsuccessfully attempted a login.")
+        logger.info(f"User [{email}] has unsuccessfully attempted a login.")
         raise InvalidCredentialsException
     elif not verify_password(data.password, user.hashed_password):
         raise InvalidCredentialsException
@@ -104,3 +104,8 @@ def register(user_create: UserCreate):
         )
 
     return {"detail": "New user account successfully created!"}
+
+
+@auth_router.post("/profile")
+def profile(user: User = Depends(is_user)):
+    return UserExport(**user.dict())
