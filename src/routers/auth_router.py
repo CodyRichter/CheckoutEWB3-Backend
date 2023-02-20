@@ -106,6 +106,6 @@ def register(user_create: UserCreate):
     return {"detail": "New user account successfully created!"}
 
 
-@auth_router.post("/profile")
+@auth_router.get("/profile")
 def profile(user: User = Depends(is_user)):
     return UserExport(**user.dict())
