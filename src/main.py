@@ -60,7 +60,9 @@ app.add_middleware(
 def startup():
     bidding_enabled_flag = FeatureFlag(**{"flag": "enable_bidding", "value": False})
     if not config_collection.find_one({"flag": bidding_enabled_flag.flag}):
-        config_collection.insert_one(bidding_enabled_flag.dict())
+        config_collection.insert_one(
+            {**bidding_enabled_flag.dict(), "_id": "enable_bidding"}
+        )
 
 
 @app.get("/")
