@@ -69,7 +69,7 @@ def login(data: OAuth2PasswordRequestForm = Depends()):
         raise InvalidCredentialsException
 
     access_token = manager.create_access_token(
-        data=dict(sub=email), expires=timedelta(hours=12)
+        data=dict(sub=email), expires=timedelta(days=7)
     )
     logger.info(
         f"User [{user.first_name}, {user.last_name}, {user.email}] has logged in successfully."
