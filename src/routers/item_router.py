@@ -2,8 +2,12 @@ import logging
 
 from fastapi import APIRouter, Depends
 
-from src.exceptions import item_name_conflict_exception, item_not_found_exception
-from src.helpers import item_collection
+from src.exceptions import (
+    item_name_conflict_exception,
+    item_not_found_exception,
+    item_update_bid_conflict_exception,
+)
+from src.helpers import item_collection, bid_collection
 from src.models import AuctionItem, AuctionItemList, User
 from src.routers.auth_router import is_admin
 
@@ -44,6 +48,33 @@ def add_auction_item(auction_item: AuctionItem, user: User = Depends(is_admin)):
     return {"detail": "Successfully added item to database"}
 
 
+@item_router.put("/item")
+def update_auction_item(auction_item: AuctionItem, user: User = Depends(is_admin)):
+    existing_item = item_collection.find_one({"name": auction_item.name})
+    if not existing_item:
+        raise item_not_found_exception
+
+    new_item = auction_item.dict()
+
+    if new_item["bid"] != existing_item["bid"] and existing_item["bids_placed"]:
+        raise item_update_bid_conflict_exception
+
+    item_collection.update_one(
+        {"name": existing_item["name"]},
+        {
+            "$set": {
+                "bid": new_item["bid"],
+                "description": new_item["description"],
+                "tags": new_item["tags"],
+                "image": new_item["image"],
+                "additional_images": new_item["additional_images"],
+            }
+        },
+    )
+
+    return {"detail": "Successfully updated item"}
+
+
 @item_router.post("/items")
 def add_auction_items(auction_items: AuctionItemList, user: User = Depends(is_admin)):
     count = 0
@@ -70,6 +101,7 @@ def add_auction_items(auction_items: AuctionItemList, user: User = Depends(is_ad
 def remove_auction_item(item_name: str, user: User = Depends(is_admin)):
     if item_collection.find_one({"name": item_name}):
         item_collection.delete_one({"name": item_name})
+        bid_collection.delete_many({"item_name": item_name})
         logger.info(
             f"Item [{item_name}] deleted by admin [{user.first_name} {user.last_name}]"
         )

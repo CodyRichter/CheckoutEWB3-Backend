@@ -70,6 +70,7 @@ class UserExport(BaseModel):
     first_name: str
     last_name: str
     email: str
+    admin: bool
 
 
 class ProfileResponse(BaseModel):
