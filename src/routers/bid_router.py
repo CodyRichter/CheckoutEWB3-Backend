@@ -24,7 +24,8 @@ from src.models import (
     User,
     UserBidCreate,
     UserBidInternal,
-    UserBidStatus, BidDeltaResponse,
+    UserBidStatus,
+    BidDeltaResponse,
 )
 from src.routers.auth_router import is_admin, is_user
 from src.settings import settings

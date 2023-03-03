@@ -9,7 +9,7 @@ class AuctionItem(BaseModel):
     bid: float
     tags: List[str]
     image: str
-    additional_images: Optional[str] = ""
+    image_placeholder: Optional[str] = ""
     bids_placed: bool = False
 
 

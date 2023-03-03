@@ -5,3 +5,6 @@ pytz
 dnspython
 fastapi-login
 python-multipart
+blurhash-python
+boto3
+Pillow

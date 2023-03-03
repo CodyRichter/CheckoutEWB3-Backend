@@ -1,6 +1,8 @@
 import os
 
 from pymongo import MongoClient
+import boto3
+from src.settings import settings
 
 if os.getenv("MONGO_DB_URL"):
     client = MongoClient(os.getenv("MONGO_DB_URL"))
@@ -12,6 +14,12 @@ item_collection = database["items"]
 bid_collection = database["bids"]
 config_collection = database["config"]
 user_collection = database["users"]
+
+s3_client = boto3.client(
+    "s3",
+    aws_access_key_id=settings.AWS_ACCESS_KEY,
+    aws_secret_access_key=settings.AWS_SECRET_KEY,
+)
 
 
 def set_bidding_enabled(result: bool) -> None:

@@ -9,7 +9,8 @@ services:
       dockerfile: Dockerfile
     environment:
       - GUNICORN_CMD_ARGS=--reload
-#      - MONGO_DB_URL=${MONGO_DB_URL}
+      - AWS_ACCESS_KEY=${AWS_KEY}
+      - AWS_SECRET_KEY=${AWS_SECRET}
     volumes:
       - "./src:/app/src"
     ports:
