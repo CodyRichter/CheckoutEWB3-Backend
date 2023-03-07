@@ -11,21 +11,22 @@ services:
       - GUNICORN_CMD_ARGS=--reload
       - AWS_ACCESS_KEY=${AWS_KEY}
       - AWS_SECRET_KEY=${AWS_SECRET}
+      - DATABASE_URL=${POSTGRES_URL}
     volumes:
       - "./src:/app/src"
     ports:
       - "4250:4250"
-  checkoutewb-database:
-    image: postgres
-    restart: always
-    container_name: checkoutewb-database
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    ports:
-      - '5432:5432'
-    volumes:
-      - db-data:/var/lib/postgresql/data
+  # checkoutewb-database:
+  #   image: postgres
+  #   restart: always
+  #   container_name: checkoutewb-database
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #   ports:
+  #     - '5432:5432'
+  #   volumes:
+  #     - db-data:/var/lib/postgresql/data
 
 volumes:
   db-data:

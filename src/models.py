@@ -17,7 +17,7 @@ from sqlalchemy.orm import RelationshipProperty as SARelationshipProperty
 class BidInternal(SQLModel, table=True):
     __tablename__ = "bids"
 
-    id: int = Field(default=None, primary_key=True)
+    id: str = Field(default=None, primary_key=True)
     bid: float = Field(default=None)
     email: str = Field(default=None, index=True)
     time_placed: str = Field(default=None)
@@ -31,14 +31,14 @@ class BidInternal(SQLModel, table=True):
 class ItemInternal(SQLModel, table=True):
     __tablename__ = "items"
 
-    name: str = Field(default=None, primary_key=True, index=True)
+    name: str = Field(default=None, primary_key=True)
     description: str = Field(default=None)
     original_bid: float = Field(default=None)
     tags: List[str] = Field(default=None, sa_column=SAColumn("tags", SAArray(SAString)))
     image: str = Field(default=None)
     image_placeholder: Optional[str] = Field(default=None)
 
-    winning_bid_id: Optional[int] = Field(default=None, foreign_key="bids.id")
+    winning_bid_id: Optional[str] = Field(default=None, foreign_key="bids.id")
     winning_bid: Optional[BidInternal] = Relationship(
         back_populates="item", sa_relationship_kwargs={"uselist": False}
     )

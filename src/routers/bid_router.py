@@ -124,6 +124,7 @@ def place_bid(
     current_time = datetime.now(tz)
 
     bid_for_db = BidInternal(
+        id=str(uuid.uuid4()),
         item_name=bid_create.item_name,
         item=bid_item,
         bid=bid_create.bid,
