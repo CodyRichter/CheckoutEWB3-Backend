@@ -24,6 +24,7 @@ def __get_engine():
     return create_engine(
         connection_uri,
         poolclass=NullPool,
+        pool_size=10,
         isolation_level="READ COMMITTED",
     )
 
