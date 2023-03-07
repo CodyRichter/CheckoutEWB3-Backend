@@ -18,6 +18,9 @@ cur_token = ""
 
 def __get_engine():
     connection_uri = settings.DATABASE_URL
+    if connection_uri[:9] == "postgres:":
+        connection_uri = connection_uri.replace("postgres:", "postgresql:", 1)
+
     return create_engine(
         connection_uri,
         poolclass=NullPool,
