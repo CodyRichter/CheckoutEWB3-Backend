@@ -17,7 +17,7 @@ cur_token = ""
 
 
 def __get_engine():
-    connection_uri = settings.DB_URL
+    connection_uri = settings.DATABASE_URL
     return create_engine(
         connection_uri,
         poolclass=NullPool,

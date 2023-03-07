@@ -7,7 +7,9 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY: str
     AWS_SECRET_KEY: str
     AWS_IMAGE_BUCKET_NAME: str = "ewb-auction-images"
-    DB_URL: str = "checkoutewb-database"
+    DATABASE_URL: str = (
+        "postgresql://postgres:password@checkoutewb-database:5432/ewb_auction"
+    )
 
 
 settings = Settings()
