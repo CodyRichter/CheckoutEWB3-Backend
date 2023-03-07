@@ -7,12 +7,12 @@ from fastapi.requests import Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_login import LoginManager
 from fastapi_login.exceptions import InvalidCredentialsException
-from pymongo.errors import DuplicateKeyError
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
+from sqlalchemy.exc import IntegrityError
 
-from src.helpers import user_collection
-from src.models import User, UserCreate, UserExport
+from src.models import UserInternal, UserCreate, UserExport
 from src.settings import settings
+from src.database import get_session
 
 manager = LoginManager(settings.auth_secret, token_url="/auth/token")
 
@@ -31,14 +31,15 @@ def verify_password(plaintext: str, hashed: str):
 
 @manager.user_loader()
 def load_user(email: str):
-    user = user_collection.find_one({"_id": email})
-    return User.parse_obj(user) if user else None
+    with get_session() as session:
+        user = session.query(UserInternal).filter(UserInternal.email == email).first()
+        return user
 
 
 def is_user(request: Request):
     raw_user_data = request.state.user
     if request.state.user:
-        user = User.parse_obj(raw_user_data)
+        user = UserInternal.parse_obj(raw_user_data)
         return user
 
     raise HTTPException(
@@ -48,7 +49,7 @@ def is_user(request: Request):
     )
 
 
-def is_admin(user: User = Depends(is_user)):
+def is_admin(user: UserInternal = Depends(is_user)):
     if not user.admin:
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
@@ -78,8 +79,8 @@ def login(data: OAuth2PasswordRequestForm = Depends()):
 
 
 @auth_router.post("/register", status_code=201)
-def register(user_create: UserCreate):
-    user: User = User(
+def register(user_create: UserCreate, session=Depends(get_session)):
+    user: UserInternal = UserInternal(
         first_name=user_create.first_name,
         last_name=user_create.last_name,
         email=user_create.email,
@@ -89,11 +90,12 @@ def register(user_create: UserCreate):
     )
 
     try:
-        user_collection.insert_one({"_id": user.email, **user.dict()})
+        session.add(user)
+        session.commit()
         logger.info(
             f"User [{user.first_name}, {user.last_name}, {user.email}] has registered a new account."
         )
-    except DuplicateKeyError:
+    except IntegrityError:
         logger.info(
             f"User [{user.email}] has failed to register a new account due to email conflict."
         )
@@ -107,5 +109,5 @@ def register(user_create: UserCreate):
 
 
 @auth_router.get("/profile")
-def profile(user: User = Depends(is_user)):
+def profile(user: UserInternal = Depends(is_user)):
     return UserExport(**user.dict())

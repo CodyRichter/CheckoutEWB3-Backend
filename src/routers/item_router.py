@@ -1,6 +1,7 @@
 import io
 import logging
 from typing import List, Union
+from src.database import get_session
 
 from fastapi import APIRouter, Depends, UploadFile, Form, File
 import blurhash
@@ -11,8 +12,16 @@ from src.exceptions import (
     item_not_found_exception,
     item_update_bid_conflict_exception,
 )
-from src.helpers import item_collection, bid_collection, s3_client
-from src.models import AuctionItem, AuctionItemList, User
+from src.helpers import s3_client
+from src.models import (
+    BidInternal,
+    ItemInternal,
+    ItemExport,
+    ItemInternal,
+    ItemList,
+    UserInternal,
+    UserInternal,
+)
 from src.routers.auth_router import is_admin
 from src.settings import settings
 from PIL import Image
@@ -51,20 +60,19 @@ def update_item_image(item_name: str, image_file: str):
     return image_url, image_placeholder
 
 
-@item_router.get("/items", response_model=AuctionItemList)
-def get_all_items():
-    db_items = item_collection.find({}, {"_id": 0}).sort("name")
-    items = [AuctionItem(**db_item) for db_item in db_items]
-    return AuctionItemList(items=items)
+@item_router.get("/items", response_model=ItemList)
+def get_all_items(session=Depends(get_session)):
+    db_items = session.query(ItemInternal).order_by(ItemInternal.name).all()
+    return ItemList(items=db_items)
 
 
-@item_router.get("/item", response_model=AuctionItem)
-def get_item_by_name(item_name: str):
-    db_query = item_collection.find_one({"name": item_name}, {"_id": 0})
-    if not db_query:
+@item_router.get("/item", response_model=ItemExport)
+def get_item_by_name(item_name: str, session=Depends(get_session)):
+    db_item = session.query(ItemInternal).filter(ItemInternal.name == item_name).first()
+    if not db_item:
         raise item_not_found_exception
 
-    return AuctionItem(**db_query)
+    return db_item
 
 
 @item_router.post("/item")
@@ -74,27 +82,26 @@ def add_auction_item(
     bid: float = Form(...),
     tags: List[str] = Form(...),
     image: UploadFile = File(...),
-    user: User = Depends(is_admin),
+    user: UserInternal = Depends(is_admin),
+    session=Depends(get_session),
 ):
 
-    if item_collection.find_one({"name": name}):
+    if session.query(ItemInternal).filter_by(name=name).first():
         raise item_name_conflict_exception
 
-    item_to_add = {
-        "_id": name,
-        "name": name,
-        "description": description,
-        "original_bid": bid,
-        "bid": bid,
-        "tags": tags,
-        "bids_placed": False,
-    }
-
     image_url, image_placeholder = update_item_image(name, image.file)
-    item_to_add["image"] = image_url
-    item_to_add["image_placeholder"] = image_placeholder
 
-    item_collection.insert_one(item_to_add)
+    item_to_add = ItemInternal(
+        name=name,
+        description=description,
+        original_bid=bid,
+        tags=tags,
+        image=image_url,
+        image_placeholder=image_placeholder,
+    )
+
+    session.add(item_to_add)
+    session.commit()
 
     logger.info(f"Item [{name}] created by admin [{user.first_name} {user.last_name}]")
     return {"detail": "Successfully added item to database"}
@@ -107,32 +114,29 @@ def update_auction_item(
     bid: float = Form(...),
     tags: List[str] = Form(...),
     image: Union[UploadFile, None] = None,
-    user: User = Depends(is_admin),
+    user: UserInternal = Depends(is_admin),
+    session=Depends(get_session),
 ):
-    existing_item = item_collection.find_one({"name": name})
+    existing_item: ItemInternal = (
+        session.query(ItemInternal).filter_by(name=name).first()
+    )
     if not existing_item:
         raise item_not_found_exception
 
-    new_item = {
-        "description": description,
-        "bid": bid,
-        "tags": tags,
-    }
-
-    if new_item["bid"] != existing_item["bid"] and existing_item["bids_placed"]:
+    # If the item has a winning bid, the original bid cannot be changed
+    if existing_item.winning_bid and bid != existing_item.original_bid:
         raise item_update_bid_conflict_exception
 
     if image:
         image_url, image_placeholder = update_item_image(name, image.file)
-        new_item["image"] = image_url
-        new_item["image_placeholder"] = image_placeholder
+        existing_item.image = image_url
+        existing_item.image_placeholder = image_placeholder
 
-    item_collection.update_one(
-        {"name": existing_item["name"]},
-        {
-            "$set": new_item,
-        },
-    )
+    existing_item.description = description
+    existing_item.original_bid = bid
+    existing_item.tags = tags
+
+    session.commit()
 
     logger.info(f"Item [{name}] updated by admin [{user.first_name} {user.last_name}]")
 
@@ -140,19 +144,27 @@ def update_auction_item(
 
 
 @item_router.delete("/item")
-def remove_auction_item(item_name: str, user: User = Depends(is_admin)):
-    if item_collection.find_one({"name": item_name}):
-        item_collection.delete_one({"name": item_name})
-        bid_collection.delete_many({"item_name": item_name})
+def remove_auction_item(
+    item_name: str, user: UserInternal = Depends(is_admin), session=Depends(get_session)
+):
 
-        # Delete Image from S3
-        s3_client.delete_object(
-            Bucket=settings.AWS_IMAGE_BUCKET_NAME, Key=f"{item_name}.jpg"
-        )
+    item = session.query(ItemInternal).filter_by(name=item_name).first()
+    if not item:
+        raise item_not_found_exception
 
-        logger.info(
-            f"Item [{item_name}] deleted by admin [{user.first_name} {user.last_name}]"
-        )
-        return {"detail": "Successfully deleted item"}
+    item_bids = session.query(BidInternal).filter_by(item_name=item_name).all()
+    for bid in item_bids:
+        session.delete(bid)
 
-    raise item_not_found_exception
+    session.delete(item)
+    session.commit()
+
+    s3_client.delete_object(
+        Bucket=settings.AWS_IMAGE_BUCKET_NAME, Key=f"{item_name}.jpg"
+    )
+
+    logger.info(
+        f"Item [{item_name}] deleted by admin [{user.first_name} {user.last_name}]"
+    )
+
+    return {"detail": "Successfully deleted item"}

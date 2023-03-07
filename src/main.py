@@ -1,9 +1,9 @@
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from starlette.middleware.cors import CORSMiddleware
 
-from src.helpers import config_collection
+from src.database import create_db, get_session
 from src.models import FeatureFlag
 from src.routers.auth_router import auth_router, manager
 from src.routers.bid_router import bid_router
@@ -38,13 +38,6 @@ manager.useRequest(app)
 
 logger = logging.getLogger("api")
 
-# Cross Origin Request Scripting (CORS) is handled here.
-# origins = [
-#     "http://localhost",
-#     "http://localhost:3000",
-#     "https://auction.ewbumass.org",
-# ]
-
 origins = ["*"]
 
 app.add_middleware(
@@ -58,11 +51,21 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup():
-    bidding_enabled_flag = FeatureFlag(**{"flag": "enable_bidding", "value": False})
-    if not config_collection.find_one({"flag": bidding_enabled_flag.flag}):
-        config_collection.insert_one(
-            {**bidding_enabled_flag.dict(), "_id": "enable_bidding"}
+
+    create_db()
+
+    with get_session() as session:
+        bidding_enabled_flag = FeatureFlag(**{"flag": "enable_bidding", "value": False})
+
+        flag_exists = (
+            session.query(FeatureFlag)
+            .filter(FeatureFlag.flag == bidding_enabled_flag.flag)
+            .first()
         )
+
+        if not flag_exists:
+            session.add(bidding_enabled_flag)
+            session.commit()
 
 
 @app.get("/")

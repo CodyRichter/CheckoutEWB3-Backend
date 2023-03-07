@@ -1,6 +1,5 @@
 fastapi
 uvicorn
-pymongo
 pytz
 dnspython
 fastapi-login
@@ -8,3 +7,7 @@ python-multipart
 blurhash-python
 boto3
 Pillow
+sqlalchemy
+sqlalchemy_utils
+sqlmodel
+psycopg2-binary

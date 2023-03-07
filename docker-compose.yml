@@ -16,11 +16,17 @@ services:
     ports:
       - "4250:4250"
   checkoutewb-database:
-    image: mongo:latest
+    image: postgres
+    restart: always
     container_name: checkoutewb-database
-    volumes:
-      - db-data:/data/db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
     ports:
-      - 27017:27017
+      - '5432:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
 volumes:
   db-data:
+    driver: local
