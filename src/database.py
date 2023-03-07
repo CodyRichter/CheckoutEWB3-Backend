@@ -17,12 +17,7 @@ cur_token = ""
 
 
 def __get_engine():
-    user = settings.AUTHENTICATION_POSTGRES_USER
-    password = settings.AUTHENTICATION_POSTGRES_PASSWORD
-    host = settings.AUTHENTICATION_POSTGRES_HOST
-    port = settings.AUTHENTICATION_POSTGRES_PORT
-    database = settings.AUTHENTICATION_POSTGRES_DB
-    connection_uri = f"postgresql://{user}:{password}@{host}:{port}/{database}"
+    connection_uri = settings.DB_URL
     return create_engine(
         connection_uri,
         poolclass=NullPool,
@@ -35,8 +30,9 @@ def create_db():
     engine = __get_engine()
 
     if db_exists():
-        logging.warning(f"db {settings.AUTHENTICATION_POSTGRES_DB} exists")
+        logging.warning(f"Database Already Exists, Proceeding...")
     else:
+        logging.warning(f"Database Does Not Exist, Creating...")
         create_database(engine.url)
 
     # Import all models to be created by SQLModel engine.
