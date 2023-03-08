@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from src.models import UserInternal, UserCreate, UserExport
 from src.settings import settings
-from src.database import session_dep
+from src.database import get_session, session_dep
 
 manager = LoginManager(settings.auth_secret, token_url="/auth/token")
 
@@ -31,9 +31,12 @@ def verify_password(plaintext: str, hashed: str):
 
 @manager.user_loader()
 def load_user(email: str):
-    with session_dep() as session:
+    try:
+        session = get_session()
         user = session.query(UserInternal).filter(UserInternal.email == email).first()
-        return user
+    finally:
+        session.close()
+    return user
 
 
 def is_user(request: Request):
