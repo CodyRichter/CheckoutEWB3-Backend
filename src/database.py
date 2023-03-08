@@ -23,8 +23,7 @@ def __get_engine():
 
     return create_engine(
         connection_uri,
-        pool_size=17,
-        max_overflow=0,
+        poolclass=NullPool,
         isolation_level="READ COMMITTED",
     )
 
