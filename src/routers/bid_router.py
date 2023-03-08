@@ -34,16 +34,18 @@ logger = logging.Logger("Bids")
 
 
 @bid_router.get("/enabled")
-def get_bidding_status():
-    return {"bidding_enabled": is_bidding_enabled()}
+def get_bidding_status(session=Depends(session_dep)):
+    return {"bidding_enabled": is_bidding_enabled(session)}
 
 
 @bid_router.post("/enabled")
 def set_bidding_status(
-    bidding_mode: SetBiddingMode, user: UserInternal = Depends(is_admin)
+    bidding_mode: SetBiddingMode,
+    user: UserInternal = Depends(is_admin),
+    session=Depends(session_dep),
 ):
     enabled = bidding_mode.enabled
-    set_bidding_enabled(enabled)
+    set_bidding_enabled(enabled, session)
     logger.info(
         f"Bidding [{'Enabled' if enabled else 'Disabled'}] by admin [{user.first_name} {user.last_name}]"
     )
@@ -91,7 +93,7 @@ def place_bid(
     session=Depends(session_dep),
 ):
 
-    if not is_bidding_enabled():
+    if not is_bidding_enabled(session):
         raise bidding_disabled_exception
 
     bid_item = (
