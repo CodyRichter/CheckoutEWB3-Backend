@@ -23,7 +23,7 @@ def __get_engine():
 
     return create_engine(
         connection_uri,
-        pool_size=5,
+        pool_size=17,
         max_overflow=0,
         isolation_level="READ COMMITTED",
     )
@@ -47,7 +47,8 @@ def create_db():
 
 def get_session():
     """
-    Returns a new session object with the current engine
+    Returns a new session object with the current engine. This must not be used standalone
+    as it will not commit or close the session. Use session_dep instead.
 
     :return: sqlmodel Session
     :rtype: session

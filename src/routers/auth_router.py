@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from src.models import UserInternal, UserCreate, UserExport
 from src.settings import settings
-from src.database import get_session
+from src.database import session_dep
 
 manager = LoginManager(settings.auth_secret, token_url="/auth/token")
 
@@ -31,7 +31,7 @@ def verify_password(plaintext: str, hashed: str):
 
 @manager.user_loader()
 def load_user(email: str):
-    with get_session() as session:
+    with session_dep() as session:
         user = session.query(UserInternal).filter(UserInternal.email == email).first()
         return user
 
@@ -79,7 +79,7 @@ def login(data: OAuth2PasswordRequestForm = Depends()):
 
 
 @auth_router.post("/register", status_code=201)
-def register(user_create: UserCreate, session=Depends(get_session)):
+def register(user_create: UserCreate, session=Depends(session_dep)):
     user: UserInternal = UserInternal(
         first_name=user_create.first_name,
         last_name=user_create.last_name,

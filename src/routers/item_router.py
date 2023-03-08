@@ -1,7 +1,7 @@
 import io
 import logging
 from typing import List, Union
-from src.database import get_session
+from src.database import session_dep
 
 from fastapi import APIRouter, Depends, UploadFile, Form, File
 import blurhash
@@ -61,13 +61,13 @@ def update_item_image(item_name: str, image_file: str):
 
 
 @item_router.get("/items", response_model=ItemList)
-def get_all_items(session=Depends(get_session)):
+def get_all_items(session=Depends(session_dep)):
     db_items = session.query(ItemInternal).order_by(ItemInternal.name).all()
     return ItemList(items=db_items)
 
 
 @item_router.get("/item", response_model=ItemExport)
-def get_item_by_name(item_name: str, session=Depends(get_session)):
+def get_item_by_name(item_name: str, session=Depends(session_dep)):
     db_item = session.query(ItemInternal).filter(ItemInternal.name == item_name).first()
     if not db_item:
         raise item_not_found_exception
@@ -83,7 +83,7 @@ def add_auction_item(
     tags: List[str] = Form(...),
     image: UploadFile = File(...),
     user: UserInternal = Depends(is_admin),
-    session=Depends(get_session),
+    session=Depends(session_dep),
 ):
 
     if session.query(ItemInternal).filter_by(name=name).first():
@@ -115,7 +115,7 @@ def update_auction_item(
     tags: List[str] = Form(...),
     image: Union[UploadFile, None] = None,
     user: UserInternal = Depends(is_admin),
-    session=Depends(get_session),
+    session=Depends(session_dep),
 ):
     existing_item: ItemInternal = (
         session.query(ItemInternal).filter_by(name=name).first()
@@ -145,7 +145,7 @@ def update_auction_item(
 
 @item_router.delete("/item")
 def remove_auction_item(
-    item_name: str, user: UserInternal = Depends(is_admin), session=Depends(get_session)
+    item_name: str, user: UserInternal = Depends(is_admin), session=Depends(session_dep)
 ):
 
     item = session.query(ItemInternal).filter_by(name=item_name).first()

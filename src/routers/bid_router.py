@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 import uuid
-from src.database import get_session
+from src.database import session_dep
 
 from fastapi import APIRouter, Depends
 from pytz import timezone
@@ -57,7 +57,7 @@ def get_bid_delta():
 
 @bid_router.get("/user", response_model=BidStatusExport)
 def get_winning_bids(
-    user: UserInternal = Depends(is_user), session=Depends(get_session)
+    user: UserInternal = Depends(is_user), session=Depends(session_dep)
 ):
     """Gets the list of all items in which the current user has bid on."""
     winning_bid_items = []
@@ -88,7 +88,7 @@ def get_winning_bids(
 def place_bid(
     bid_create: BidCreate,
     user: UserInternal = Depends(is_user),
-    session=Depends(get_session),
+    session=Depends(session_dep),
 ):
 
     if not is_bidding_enabled():

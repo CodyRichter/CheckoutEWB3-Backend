@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI, Depends
 from starlette.middleware.cors import CORSMiddleware
 
-from src.database import create_db, get_session
+from src.database import create_db, session_dep
 from src.models import FeatureFlag
 from src.routers.auth_router import auth_router, manager
 from src.routers.bid_router import bid_router
@@ -54,7 +54,7 @@ def startup():
 
     create_db()
 
-    with get_session() as session:
+    with session_dep() as session:
         bidding_enabled_flag = FeatureFlag(**{"flag": "enable_bidding", "value": False})
 
         flag_exists = (

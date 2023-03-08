@@ -1,6 +1,6 @@
 import boto3
 from src.models import FeatureFlag
-from src.database import get_session
+from src.database import session_dep
 from src.settings import settings
 
 s3_client = boto3.client(
@@ -11,7 +11,7 @@ s3_client = boto3.client(
 
 
 def set_bidding_enabled(result: bool) -> None:
-    with get_session() as session:
+    with session_dep() as session:
         db_result = (
             session.query(FeatureFlag)
             .filter(FeatureFlag.flag == "enable_bidding")
@@ -25,7 +25,7 @@ def set_bidding_enabled(result: bool) -> None:
 
 
 def is_bidding_enabled() -> bool:
-    with get_session() as session:
+    with session_dep() as session:
         db_result = (
             session.query(FeatureFlag)
             .filter(FeatureFlag.flag == "enable_bidding")
