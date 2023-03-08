@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import FastAPI, Depends
+from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 
 from src.database import create_db, get_session, session_dep
@@ -8,6 +9,7 @@ from src.models import FeatureFlag
 from src.routers.auth_router import auth_router, manager
 from src.routers.bid_router import bid_router
 from src.routers.item_router import item_router
+import sqlalchemy
 
 logger = logging.Logger("Main")
 
@@ -74,3 +76,15 @@ def startup(session=Depends(session_dep)):
 @app.get("/")
 def healthcheck():
     return "Checkout EWB Backend is Running!"
+
+
+@app.exception_handler(sqlalchemy.exc.OperationalError)
+async def validation_exception_handler(request, err):
+    logger.error(f"Database connection error on {request.url}: {err}")
+
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": "Server is currently unable to handle the request. Please try again later. Error code: 503-DBTMC"
+        },
+    )
