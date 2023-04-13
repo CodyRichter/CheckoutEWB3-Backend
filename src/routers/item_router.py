@@ -86,6 +86,9 @@ def add_auction_item(
     session=Depends(session_dep),
 ):
 
+    # Remove any leading or trailing whitespace
+    name = name.strip()
+
     if session.query(ItemInternal).filter_by(name=name).first():
         raise item_name_conflict_exception
 

@@ -25,6 +25,8 @@ from src.models import (
     BidInternal,
     BidStatusExport,
     BidDeltaResponse,
+    WinningBidExport,
+    WinningBidsResponse,
 )
 from src.routers.auth_router import is_admin, is_user
 from src.settings import settings
@@ -144,3 +146,34 @@ def place_bid(
         f"Bid placed on [{bid_item.name}] for [${bid_create.bid}] by [{user.first_name} {user.last_name}, {user.email}]"
     )
     return {"detail": "Your bid has been successfully placed!"}
+
+
+@bid_router.get("/winner", response_model=WinningBidsResponse)
+def get_winning_bids(
+    user: UserInternal = Depends(is_admin),
+    session=Depends(session_dep),
+):
+    # TODO: Return winning bids for all users
+
+    # Get winning bids
+    winning_bids_query = (
+        session.query(BidInternal, UserInternal)
+        .filter(BidInternal.id.in_(session.query(ItemInternal.winning_bid_id)))
+        .filter(BidInternal.email == UserInternal.email)
+        .all()
+    )
+
+    winning_bids = []
+
+    for row in winning_bids_query:
+        winning_bids.append(
+            WinningBidExport(
+                item_name=row.BidInternal.item_name,
+                winning_bid=row.BidInternal.bid,
+                email=row.BidInternal.email,
+                first_name=row.UserInternal.first_name,
+                last_name=row.UserInternal.last_name,
+            )
+        )
+
+    return WinningBidsResponse(winning_bids=winning_bids)

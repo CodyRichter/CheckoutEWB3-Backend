@@ -76,6 +76,18 @@ class BidCreate(SQLModel, table=False):
     bid: float
 
 
+class WinningBidExport(SQLModel, table=False):
+    item_name: str
+    winning_bid: float
+    email: str
+    first_name: str
+    last_name: str
+
+
+class WinningBidsResponse(SQLModel, table=False):
+    winning_bids: List[WinningBidExport]
+
+
 # ----- ----- ----- ----- -----
 # Item Models
 # ----- ----- ----- ----- -----
